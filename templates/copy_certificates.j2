@@ -1,0 +1,25 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+{% for item in certbot_create_standalone_deploy_certificates %}
+{% if item.cert is defined  %}
+cp $RENEWED_LINEAGE/cert.pem {{ item.cert.path }}
+chown {{ item.cert.owner }}:{{ item.cert.group }} {{ item.cert.path }}
+chmod {{ item.cert.mode }} {{ item.cert.path }}
+{% endif %}
+{% if item.chain is defined  %}
+cp $RENEWED_LINEAGE/chain.pem {{ item.chain.path }}
+chown {{ item.chain.owner }}:{{ item.chain.group }} {{ item.chain.path }}
+chmod {{ item.chain.mode }} {{ item.chain.path }}
+{% endif %}
+{% if item.fullchain is defined %}
+cp $RENEWED_LINEAGE/fullchain.pem {{ item.fullchain.path }}
+chown {{ item.fullchain.owner }}:{{ item.fullchain.group }} {{ item.fullchain.path }}
+chmod {{ item.fullchain.mode }} {{ item.fullchain.path }}
+{% endif %}
+{% if item.key is defined  %}
+cp $RENEWED_LINEAGE/privkey.pem {{ item.key.path }}
+chown {{ item.key.owner }}:{{ item.key.group }} {{ item.key.path }}
+chmod {{ item.key.mode }} {{ item.key.path }}
+{% endif %}
+{% endfor %}

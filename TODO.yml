@@ -1,0 +1,5 @@
+# TODO
+
+- Add support ufw as well as firewalld
+- Add support for DNS method
+- Add ability to install custom plugins, i.e - gandi DNS method

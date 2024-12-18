@@ -1,0 +1,26 @@
+---
+# handlers file for certbot
+
+# ----------
+
+- name: Update CA Trust Debian  # noqa: no-changed-when
+  become: true
+  when: ansible_os_family == "Debian"
+  ansible.builtin.command: /usr/sbin/update-ca-certificates
+
+- name: Update CA Trust Redhat  # noqa: no-changed-when
+  become: true
+  when: ansible_os_family == "RedHat"
+  ansible.builtin.command: /bin/update-ca-trust
+
+# ----------
+
+- name: Close HTTP Port
+  become: true
+  when:
+    - certbot_http_open.changed
+  ansible.posix.firewalld:
+    service: "http"
+    permanent: true
+    state: disabled
+    immediate: true
