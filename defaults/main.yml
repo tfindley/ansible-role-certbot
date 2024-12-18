@@ -1,14 +1,21 @@
 ---
-# Certbot auto-renew cron job configuration (for certificate renewals).
-certbot_auto_renew: true
+# defaults file for certbot
+certbot_dryrun: false
+certbot_auto_renew: true  # not yet implemented
 certbot_auto_renew_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
 certbot_auto_renew_hour: "3"
 certbot_auto_renew_minute: "30"
 certbot_auto_renew_options: "--quiet"
 
+certbot_create_extra_args:
+certbot_acme_server: acme
+certbot_acme_server_extra_args:
+
 certbot_testmode: false
 certbot_hsts: false
 
+certbot_dnscheck_ignore: false
+# certbot_dnscheck_server:
 
 # Parameters used when creating new Certbot certs.
 certbot_create_if_missing: false
@@ -28,7 +35,9 @@ certbot_certs: []
 #     - example3.com
 
 certbot_create_command: >-
-  {{ certbot_script }} certonly --{{ certbot_create_method  }}
+  {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun else '' }}
+  {{ certbot_custom_server_string if certbot_acme_server != 'acme' else '' }}
+  --{{ certbot_create_method }}
   {{ '--hsts' if certbot_hsts else '' }}
   {{ '--test-cert' if certbot_testmode else '' }}
   --noninteractive --agree-tos
@@ -40,12 +49,15 @@ certbot_create_command: >-
   {{ '--pre-hook /etc/letsencrypt/renewal-hooks/pre/stop_services'
     if certbot_create_standalone_stop_services and certbot_create_method == 'standalone'
   else '' }}
+  {{ '--deploy-hook /etc/letsencrypt/renewal-hooks/deploy/copy_certificates'
+      if certbot_create_standalone_copy_certs and certbot_create_method == 'standalone'
+    else '' }}
   {{ '--post-hook /etc/letsencrypt/renewal-hooks/post/start_services'
     if certbot_create_standalone_stop_services and certbot_create_method == 'standalone'
   else '' }}
 
-certbot_create_standalone_stop_services:
-  - nginx
+certbot_create_standalone_stop_services: []
+  # - nginx
   # - apache
   # - varnish
 

@@ -1,0 +1,28 @@
+---
+# vars file for certbot
+
+# CA Cert management
+_ca_path:
+  RedHat:
+    6: /usr/local/share/ca-certificates
+    7: /etc/pki/ca-trust/source/anchors
+    8: /etc/pki/ca-trust/source/whitelist
+    9: /etc/pki/ca-trust/source/anchors
+  Debian:
+    7: /usr/local/share/ca-certificates
+    8: /usr/local/share/ca-certificates
+    9: /usr/local/share/ca-certificates
+    10: /usr/local/share/ca-certificates
+    11: /usr/local/share/ca-certificates
+ca_path: "{{ _ca_path[ansible_os_family][ansible_distribution_major_version | int] }}"
+
+_certbot_package:
+  default: "certbot"
+  RedHat:
+    8: "certbot"
+    9: "certbot"
+  Ubuntu:
+    16: "letsencrypt"
+certbot_package: "{{ _certbot_package[ansible_os_family][ansible_distribution_major_version | int] | default(_certbot_package['default']) }}"
+
+certbot_custom_server_string: "--server {{ certbot_acme_server }} {{ certbot_acme_server_extra_args | default(null) }}"
