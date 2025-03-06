@@ -1,4 +1,30 @@
 ---
+
+- name: Certbot.Cert.Standalone - Print Certbot command
+  when:
+    - certbot_dryrun
+  ansible.builtin.debug:
+    msg:
+      - "Certbot Command:"
+      - "----------------"
+      - "{{ certbot_create_command }}"
+      - "----------------"
+
+- name: Certbot.Cert.Standalone - Ensure HTTP port is open for webserver
+  become: true
+  register: certbot_http_open
+  notify: Close HTTP Port
+  when:
+    - certbot_create_method == "standalone"
+    - not letsencrypt_cert.stat.exists
+  ansible.posix.firewalld:
+    service: "http"
+    permanent: true
+    state: enabled
+    immediate: true
+
+# ----
+
 - name: Certbot.Cert.Webroot - Check if certificate already exists.
   become: true
   ansible.builtin.stat:
@@ -20,3 +46,9 @@
     - not letsencrypt_cert.stat.exists
   ansible.builtin.command:
     cmd: "{{ certbot_create_command }}"
+
+# ----
+
+- name: Certbot.Cert.Standalone - Report on certificate creation
+  ansible.builtin.debug:
+    var: certbot_create_output

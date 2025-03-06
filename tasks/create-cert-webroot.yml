@@ -1,0 +1,10 @@
+---
+- name: Create webroot directory if it doesn't exist yet
+  file:
+    path: "{{ cert_item.webroot | default(certbot_webroot) }}"
+    state: directory
+
+- name: Generate new certificate if one doesn't exist.
+  command: "{{ certbot_create_command }}"
+  register: certbot_create
+  changed_when: "'no action taken' not in certbot_create.stdout"

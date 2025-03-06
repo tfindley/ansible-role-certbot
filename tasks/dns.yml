@@ -1,0 +1,30 @@
+---
+
+- name: Debug Var
+  ansible.builtin.debug:
+    var: item
+  loop: "{{ cert_item.domains }}"
+
+- name: Certbot.Cert.Standalone - DNS Lookup
+  become: false
+  delegate_to: localhost
+  when:
+    - not certbot_dnscheck_ignore
+  block:
+    - name: Certbot.Cert.Standalone - DNS Lookup requested domain names
+      ansible.builtin.assert:
+        that:
+          - lookup('community.general.dig', item + '.' ) is ansible.utils.ipv4 | bool
+        quiet: true
+      loop: "{{ cert_item.domains }}"
+      when:
+        - certbot_dnscheck_server is not defined or certbot_dnscheck_server == ''
+
+    - name: Certbot.Cert.Standalone - DNS Lookup requested domain names
+      ansible.builtin.assert:
+        that:
+          - lookup('community.general.dig', item + '.', '@' + certbot_dnscheck_server) is ansible.utils.ipv4 | bool
+        quiet: true
+      loop: "{{ cert_item.domains }}"
+      when:
+        - certbot_dnscheck_server is defined and certbot_dnscheck_server is ansible.utils.ipv4
