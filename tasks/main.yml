@@ -1,37 +1,54 @@
 ---
 # tasks file for certbot
 
-- name: Certbot.Main - Handoff to preflight task.
+- name: Main - Handoff to preflight task.
   ansible.builtin.include_tasks: preflight.yml
 
-- name: Certbot.Main - Handoff to preflight RHEL task.
+- name: Main - Handoff to preflight RHEL task.
   when: ansible_os_family == 'RedHat'
   ansible.builtin.include_tasks: preflight_rhel.yml
 
+- name: Main - Handoff to Check Request task.
+  ansible.builtin.include_tasks: checkreq.yml
+  with_items: "{{ certbot_certs }}"
+  loop_control:
+    loop_var: cert_item
 # --------
 
-- name: Certbot.Main - Handoff to TLS task
+- name: Main - Handoff to TLS task
   ansible.builtin.include_tasks: tls.yml
   when:
     - certbot_install_rootcerts
     - certbot_install_rootcerts is defined and certbot_install_rootcerts | list
 
-- name: Certbot.Main - Handoff to install task (package method).
-  ansible.builtin.include_tasks: install_package.yml
+- name: Main - Handoff to install task (package method).
+  ansible.builtin.include_tasks: install-from-package.yml
   when: certbot_install_method == 'package'
 
-- name: Certbot.Main - Handoff to install task (source method).
-  ansible.builtin.include_tasks: install_source.yml
+- name: Main - Handoff to install task (source method).
+  ansible.builtin.include_tasks: install-from-source.yml
   when: certbot_install_method == 'source'
 
-- name: Certbot.Main - Handoff to install task (snap method).
-  ansible.builtin.include_tasks: install_snap.yml
+- name: Main - Handoff to install task (snap method).
+  ansible.builtin.include_tasks: install-from-snap.yml
   when: certbot_install_method == 'snap'
 
 # --------
 
-- name: Certbot.Main - Handoff to standlone cert creation task.
-  ansible.builtin.include_tasks: create_cert_standalone.yml
+- name: Main - Handoff to config task.
+  ansible.builtin.include_tasks: config.yml
+
+# --------
+
+- name: Main - Handoff to DNS Test task
+  ansible.builtin.include_tasks: dnstest.yml
+  when:
+    - certbot_test_dns | bool
+
+# --------
+
+- name: Main - Handoff to standlone cert creation task.
+  ansible.builtin.include_tasks: create-cert-standalone.yml
   with_items: "{{ certbot_certs }}"
   when:
     - certbot_create_if_missing
@@ -39,7 +56,7 @@
   loop_control:
     loop_var: cert_item
 
-- name: Certbot.Main - Handoff to Webroot cert creation task.
+- name: Main - Handoff to Webroot cert creation task.
   ansible.builtin.include_tasks: create-cert-webroot.yml
   with_items: "{{ certbot_certs }}"
   when:
@@ -48,6 +65,6 @@
   loop_control:
     loop_var: cert_item
 
-# - name: Certbot.Main - Handoff to AutoRenew (cron) task.
+# - name: Main - Handoff to AutoRenew (cron) task.
 #   ansible.builtin.import_tasks: renew_cron.yml
 #   when: certbot_auto_renew

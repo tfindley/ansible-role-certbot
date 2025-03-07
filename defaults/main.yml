@@ -14,9 +14,6 @@ certbot_acme_server_extra_args:
 certbot_testmode: false
 certbot_hsts: false
 
-certbot_dnscheck_ignore: false
-# certbot_dnscheck_server:
-
 # Parameters used when creating new Certbot certs.
 certbot_create_if_missing: false
 certbot_create_method: standalone
@@ -25,41 +22,57 @@ certbot_admin_email: email@example.com
 # Default webroot, overwritten by individual per-cert webroot directories
 certbot_webroot: /var/www/letsencrypt
 
-certbot_certs: []
-# - email: janedoe@example.com
-#   webroot: "/var/www/html/"
-#   domains:
-#     - example1.com
-#     - example2.com
+certbot_certs:
+  - email: janedoe@example.com
+    webroot: "/var/www/html/"
+    domains:
+      - example1.com
+      - example2.com
+    services:  # Extra
+      - nginx
+      - apache
+      - varnish
+    deploy:  # Extra
+      - dest: /opt/
+        destowner: root
+        destgroup: root
+        destmode: '0755'
+        destcreate: true
+        fileowner: root
+        filegroup: root
+        filemode: '0644'
+        cert: true
+        chain: true
+        fullchain: true
+        privkey: true
+    acme:
+      server: acme
+      options:
 # - domains:
 #     - example3.com
 
+# Support reload instead of restart for services
+# Incorporate checks (inc.dns) and all options
+
 certbot_create_command: >-
   {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun else '' }}
-  {{ certbot_custom_server_string if certbot_acme_server != 'acme' else '' }}
+  {{ certbot_custom_server if cert_item.acme is defined and cert_item.acme.server != 'acme' else '' }}
   --{{ certbot_create_method }}
-  {{ '--hsts' if certbot_hsts else '' }}
+  {{ '--hsts'if certbot_hsts else '' }}
   {{ '--test-cert' if certbot_testmode else '' }}
   --noninteractive --agree-tos
   --email {{ cert_item.email | default(certbot_admin_email) }}
-  {{ '--webroot-path ' if certbot_create_method == 'webroot'  else '' }}
-  {{ cert_item.webroot | default(certbot_webroot) if certbot_create_method == 'webroot' else '' }}
+  {{ '--webroot-path ' ~ cert_item.webroot | default(certbot_webroot)
+    if certbot_create_method == 'webroot'
+    else '' }}
   {{ certbot_create_extra_args }}
   -d {{ cert_item.domains | join(',') }}
-  {{ '--pre-hook /etc/letsencrypt/renewal-hooks/pre/stop_services'
-    if certbot_create_standalone_stop_services and certbot_create_method == 'standalone'
-  else '' }}
-  {{ '--deploy-hook /etc/letsencrypt/renewal-hooks/deploy/copy_certificates'
-      if certbot_create_standalone_copy_certs and certbot_create_method == 'standalone'
+  {{ '--pre-hook ' ~ certbot_prehook ~ ' --post-hook ' ~ certbot_posthook
+    if cert_item.services and certbot_create_method == 'standalone'
     else '' }}
-  {{ '--post-hook /etc/letsencrypt/renewal-hooks/post/start_services'
-    if certbot_create_standalone_stop_services and certbot_create_method == 'standalone'
-  else '' }}
-
-certbot_create_standalone_stop_services: []
-  # - nginx
-  # - apache
-  # - varnish
+  {{ '--deploy-hook ' ~ certbot_deployhook
+    if cert_item.deploy and certbot_create_method == 'standalone'
+    else '' }}
 
 # Available options: 'package', 'snap', 'source'.
 certbot_install_method: 'package'
@@ -71,3 +84,10 @@ certbot_keep_updated: true
 
 # Where to put Certbot when installing from source.
 certbot_dir: /opt/certbot
+
+certbot_verbose: false  # set to true to enable output from create commands
+certbot_firewall: false  # set to true to enable basic firewall management on port 80 for .wellknown endpoint
+certbot_test_dns: false
+# certbot_test_dns_server:
+
+# certbot_install_rootcerts: []

@@ -1,0 +1,14 @@
+---
+
+- name: Config - Ensure pre and post hook folders exist.
+  become: true
+  ansible.builtin.file:
+    path: "{{ certbot_path_hooks }}/{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  with_items:
+    - pre
+    - post
+    - deploy

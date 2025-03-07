@@ -1,0 +1,18 @@
+---
+- name: DNStest - DNS Lookup requested domain names
+  ansible.builtin.assert:
+    that:
+      - lookup('community.general.dig', item + '.' ) is ansible.utils.ipv4 | bool
+    quiet: true
+  loop: "{{ cert_item.domains }}"
+  # when:
+  #   - certbot_dnscheck_server is not defined or certbot_dnscheck_server == ''
+
+- name: DNStest - DNS Lookup requested domain names
+  ansible.builtin.assert:
+    that:
+      - lookup('community.general.dig', item + '.', '@' + certbot_dnscheck_server) is ansible.utils.ipv4 | bool
+    quiet: true
+  loop: "{{ cert_item.domains }}"
+  # when:
+  #   - certbot_dnscheck_server is defined and certbot_dnscheck_server is ansible.utils.ipv4

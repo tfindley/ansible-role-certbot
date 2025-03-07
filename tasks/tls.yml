@@ -1,4 +1,4 @@
-- name: Certbot.TLS - Ensure ca-certificate folder exists
+- name: TLS - Ensure ca-certificate folder exists
   become: true
   ansible.builtin.file:
     path: "{{ ca_path }}"
@@ -7,7 +7,7 @@
     group: root
     mode: '0700'
 
-- name: Certbot.TLS - Copy the root certificate
+- name: TLS - Copy the root certificate
   become: true
   ansible.builtin.copy:
     dest: "{{ ca_path }}/{{ item.filename }}.crt"
@@ -16,6 +16,8 @@
     group: root
     mode: '0600'
   loop: "{{ certbot_install_rootcerts }}"
+  loop_control:
+    label: "{{ item.filename }}"
   notify:
     - Update CA Trust Debian
     - Update CA Trust Redhat

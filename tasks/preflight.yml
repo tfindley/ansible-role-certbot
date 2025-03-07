@@ -1,6 +1,6 @@
 ---
 
-- name: Certbot.PreFlight - Test variable certbot_install_method
+- name: PreFlight - Test variable certbot_install_method
   become: false
   ansible.builtin.assert:
     that:
@@ -9,7 +9,7 @@
       - certbot_install_method in [ "package", "source", "snap" ]
     quiet: true
 
-- name: Certbot.PreFlight - Test variable certbot_create_method
+- name: PreFlight - Test variable certbot_create_method
   become: false
   ansible.builtin.assert:
     that:
@@ -18,7 +18,7 @@
       - certbot_create_method in [ "standalone", "apache", "webroot" ]
     quiet: true
 
-- name: Certbot.PreFlight - Test variable certbot_create_method
+- name: PreFlight - Test variable certbot_create_method
   become: false
   when: certbot_create_method == "webroot"
   ansible.builtin.assert:
@@ -28,7 +28,7 @@
       - certbot_create_method in [ "standalone", "apache", "webroot" ]
     quiet: true
 
-- name: Certbot.PreFlight - Test source variables
+- name: PreFlight - Test source variables
   become: false
   when: certbot_install_method == "source"
   ansible.builtin.assert:
@@ -39,7 +39,7 @@
       - certbot_dir is defined and certbot_dir is string and certbot_dir | length >= 1
     quiet: true
 
-- name: Certbot.PreFlight - Test pre and post hooks
+- name: PreFlight - Test pre and post hooks
   become: false
   when: certbot_install_method == "source"
   ansible.builtin.assert:
@@ -55,118 +55,12 @@
 #     var: item.domains
 #   loop: "{{ certbot_certs }}"
 
-- name: Certbot.PreFlight - DNS Lookup requested domain names
+# TODO: Install required DNS package or delegate to local
+
+- name: PreFlight - DNS Lookup test
   become: false
   ansible.builtin.debug:
     msg: "{{ lookup('community.general.dig', 'google.co.uk.') }}"
   delegate_to: localhost
-
-# - name: Certbot.PreFlight - Test variable certbot_create_standalone_stop_services
-#   when: certbot_create_standalone_stop_services is defined
-#   ansible.builtin.assert:
-#     that:
-#       - certbot_create_standalone_stop_services is list
-#     quiet: true
-
-- name: Certbot.PreFlight - Test deploy hook variables
-  become: false
-  when: certbot_create_standalone_deploy_certificates
-  block:
-
-    - name: Gather available local users
-      become: true
-      ansible.builtin.getent:
-        database: passwd
-
-    - name: Gather available local groups
-      become: true
-      ansible.builtin.getent:
-        database: group
-
-    - name: Certbot.PreFlight - Test cert perms
-      become: false
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.cert is defined
-      ansible.builtin.assert:
-        that:
-          - "item.cert.owner in getent_passwd.keys()"
-          - "item.cert.group in getent_group.keys()"
-          - "item.cert.mode is defined"
-        quiet: true
-
-
-    - name: Certbot.PreFlight - Test chain perms
-      become: false
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.chain is defined
-      ansible.builtin.assert:
-        that:
-          - "item.chain.owner in getent_passwd.keys()"
-          - "item.chain.group in getent_group.keys()"
-          - "item.chain.mode is defined"
-        quiet: true
-
-    - name: Certbot.PreFlight - Test fullchain perms
-      become: false
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.fullchain is defined
-      ansible.builtin.assert:
-        that:
-          - "item.fullchain.owner in getent_passwd.keys()"
-          - "item.fullchain.group in getent_group.keys()"
-          - "item.fullchain.mode is defined"
-        quiet: true
-
-    - name: Certbot.PreFlight - Test key perms
-      become: false
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.key is defined
-      ansible.builtin.assert:
-        that:
-          - "item.key.owner in getent_passwd.keys()"
-          - "item.key.group in getent_group.keys()"
-          - "item.key.mode is defined"
-        quiet: true
-
-    - name: Certbot.PreFlight - Test cert paths
-      become: true
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.cert is defined
-      ansible.builtin.stat:
-        path: "{{ item.cert.path | dirname }}"
-      check_mode: true
-      register: certpath
-      failed_when: not certpath.stat.exists
-      changed_when: false
-
-    - name: Certbot.PreFlight - Test chain paths
-      become: true
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.chain is defined
-      ansible.builtin.stat:
-        path: "{{ item.chain.path | dirname }}"
-      check_mode: true
-      register: chainpath
-      failed_when: not chainpath.stat.exists
-      changed_when: false
-
-    - name: Certbot.PreFlight - Test fullchain paths
-      become: true
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.fullchain.path is defined
-      ansible.builtin.stat:
-        path: "{{ item.fullchain.path | dirname }}"
-      check_mode: true
-      register: fullchainpath
-      failed_when: not fullchainpath.stat.exists
-      changed_when: false
-
-    - name: Certbot.PreFlight - Test key paths
-      become: true
-      loop: "{{ certbot_create_standalone_deploy_certificates }}"
-      when: item.key.path is defined
-      ansible.builtin.stat:
-        path: "{{ item.key.path | dirname }}"
-      register: keypath
-      failed_when: not keypath.stat.exists
-      changed_when: false
+  when:
+    - certbot_test_dns | bool
