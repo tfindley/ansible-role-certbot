@@ -2,14 +2,14 @@
 # {{ ansible_managed }}
 
 {% for item in cert_item.services %}
-echo "stopping service {{ item }}"
+echo "starting service {{ item }}"
 {% if ansible_service_mgr == 'systemd' %}
-systemctl stop {{ item }}
+systemctl start {{ item }}
 {% elif ansible_service_mgr == 'upstart' %}
-initctl stop {{ item }}
+initctl start {{ item }}
 {% elif ansible_service_mgr == 'openrc' %}
-rc-service {{ item }} stop
+rc-service {{ item }} start
 {% else %}
-service {{ item }} stop
+service {{ item }} start
 {% endif %}
 {% endfor %}
