@@ -1,0 +1,21 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+{% for item in cert_item.services %}
+{% if item.method is defined and item.method == 'stopstart' %}
+echo "stopping service {{ item.name }}"
+
+{% if ansible_service_mgr == 'systemd' %}
+systemctl stop {{ item.name }}
+
+{% elif ansible_service_mgr == 'upstart' %}
+initctl stop {{ item.name }}
+
+{% elif ansible_service_mgr == 'openrc' %}
+rc-service {{ item.name }} stop
+{% else %}
+service {{ item.name }} stop
+{% endif %}
+
+{% endif %}
+{% endfor %}

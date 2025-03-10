@@ -1,0 +1,148 @@
+---
+
+- name: Validate email format
+  ansible.builtin.assert:
+    that:
+      - cert_item.email is match("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
+    fail_msg: "Invalid email format: {{ cert_item.email }}"
+    quiet: true
+
+# -------
+
+- name: Gather available services
+  become: true
+  ansible.builtin.service_facts:
+
+- name: Validate services exist
+  ansible.builtin.assert:
+    that:
+      - item.name in services
+    fail_msg: "Service {{ item.name }} does not exist on this system"
+    quiet: true
+  loop: "{{ cert_item.services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: cert_item.services is defined
+
+- name: Validate services method
+  ansible.builtin.assert:
+    that:
+      - item.method in [ "stopstart", "restart", "reload" ]
+    fail_msg: "Service {{ item.name }} method must be set to stopstart, restart, or reload"
+    quiet: true
+  loop: "{{ cert_item.services }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: cert_item.services is defined
+
+# -------
+
+- name: Gather available local users
+  become: true
+  ansible.builtin.getent:
+    database: passwd
+
+- name: Gather available local groups
+  become: true
+  ansible.builtin.getent:
+    database: group
+
+- name: Validate Directory variables
+  when:
+    - cert_item.deploy is defined
+  block:
+
+    - name: Validate directory user exists
+      ansible.builtin.assert:
+        that:
+          - item.destowner in getent_passwd.keys()
+        fail_msg: "User {{ item.destowner }} does not exist"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.destowner | default('skipped') }}"
+      when:
+        - item.destcreate | bool
+
+    - name: Validate directory group exists
+      ansible.builtin.assert:
+        that:
+          - item.destgroup in getent_group.keys()
+        fail_msg: "Group {{ item.destgroup }} does not exist"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.destgroup | default('skipped') }}"
+      when:
+        - item.destcreate | bool
+
+    - name: Ensure permissions are valid octal numbers
+      ansible.builtin.assert:
+        that:
+          - item.destmode is match("^0[0-7]{3}$")
+        fail_msg: "Invalid permissions for {{ item.dest }} (destmode: {{ item.destmode }})"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.destmode | default('skipped') }}"
+      when:
+        - item.destcreate | bool
+
+# -------
+
+- name: Validate File variables
+  when:
+    - cert_item.deploy is defined
+  block:
+
+    - name: Validate file user exists
+      ansible.builtin.assert:
+        that:
+          - item.fileowner in getent_passwd.keys()
+        fail_msg: "User {{ item.fileowner }} does not exist"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.fileowner }}"
+
+    - name: Validate file group exists
+      ansible.builtin.assert:
+        that:
+          - item.filegroup in getent_group.keys()
+        fail_msg: "Group {{ item.filegroup }} does not exist"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.filegroup }}"
+
+    - name: Ensure permissions are valid octal numbers
+      ansible.builtin.assert:
+        that:
+          - item.filemode is match("^0[0-7]{3}$")
+        fail_msg: "Invalid permissions for {{ item.dest }} (filemode: {{ item.filemode }})"
+        quiet: true
+      loop: "{{ cert_item.deploy }}"
+      loop_control:
+        label: "{{ item.filemode }}"
+
+# -------
+
+- name: Validate deployment paths
+  ansible.builtin.stat:
+    path: "{{ item.dest }}"
+  register: dest_stat
+  loop: "{{ cert_item.deploy }}"
+  loop_control:
+    label: "{{ item }}"
+  when: cert_item.deploy is defined and item.destcreate is false
+
+# -------
+
+- name: Validate ACME server reachability
+  ansible.builtin.uri:
+    url: "{{ cert_item.acme.server }}"
+    method: GET
+    status_code: 200
+    return_content: false
+  register: acme_status
+  when: cert_item.acme.server is defined

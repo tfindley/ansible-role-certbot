@@ -18,6 +18,7 @@
 - name: Close HTTP Port
   become: true
   when:
+    - certbot_firewall | bool
     - certbot_http_open.changed
   ansible.posix.firewalld:
     service: "http"

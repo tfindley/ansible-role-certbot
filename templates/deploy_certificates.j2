@@ -1,0 +1,25 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+{% for item in cert_item.deploy %}
+{% if item.cert | bool | default(true) %}
+cp $RENEWED_LINEAGE/cert.pem {{ item.dest }}/cert.pem
+chown {{ item.fileowner }}:{{ item.filegroup }} {{ item.dest }}/cert.pem
+chmod {{ item.filemode }} {{ item.dest }}/cert.pem
+{% endif %}
+{% if item.chain | bool | default(true)  %}
+cp $RENEWED_LINEAGE/chain.pem {{ item.dest }}/chain.pem
+chown {{ item.fileowner }}:{{ item.filegroup }} {{ item.dest }}/chain.pem
+chmod {{ item.filemode }} {{ item.dest }}/chain.pem
+{% endif %}
+{% if item.fullchain | bool | default(true) %}
+cp $RENEWED_LINEAGE/fullchain.pem {{ item.dest }}/fullchain.pem
+chown {{ item.fileowner }}:{{ item.filegroup }} {{ item.dest }}/fullchain.pem
+chmod {{ item.filemode }} {{ item.dest }}/fullchain.pem
+{% endif %}
+{% if item.privkey | bool | default(true)  %}
+cp $RENEWED_LINEAGE/privkey.pem {{ item.dest }}/privkey.pem
+chown {{ item.fileowner }}:{{ item.filegroup }} {{ item.dest }}/privkey.pem
+chmod {{ item.filemode }} {{ item.dest }}/privkey.pem
+{% endif %}
+{% endfor %}

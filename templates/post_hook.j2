@@ -1,0 +1,59 @@
+#!/bin/bash
+# {{ ansible_managed }}
+
+{% for item in cert_item.services %}
+
+{% if item.method is undefined or item.method == 'restart' %}
+echo "restarting service {{ item.name }}"
+
+{% if ansible_service_mgr == 'systemd' %}
+systemctl restart {{ item.name }}
+
+{% elif ansible_service_mgr == 'upstart' %}
+initctl restart {{ item.name }}
+
+{% elif ansible_service_mgr == 'openrc' %}
+rc-service {{ item.name }} restart
+
+{% else %}
+service {{ item.name }} restart
+{% endif %}
+
+{% elif item.method == 'reload' %}
+echo "reloading service {{ item.name }}"
+
+{% if ansible_service_mgr == 'systemd' %}
+systemctl reload {{ item.name }}
+
+{% elif ansible_service_mgr == 'upstart' %}
+initctl reload {{ item.name }}
+
+{% elif ansible_service_mgr == 'openrc' %}
+rc-service {{ item.name }} reload
+
+{% else %}
+service {{ item.name }} reload
+{% endif %}
+
+{% elif item.method == 'stopstart' %}
+echo "starting service {{ item.name }}"
+
+{% if ansible_service_mgr == 'systemd' %}
+systemctl start {{ item.name }}
+
+{% elif ansible_service_mgr == 'upstart' %}
+initctl start {{ item.name }}
+
+{% elif ansible_service_mgr == 'openrc' %}
+rc-service {{ item.name }} start
+
+{% else %}
+service {{ item.name }} start
+{% endif %}
+
+{% endif %}
+
+{% endfor %}
+
+
+

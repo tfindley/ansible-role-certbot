@@ -1,0 +1,115 @@
+---
+
+# ----- Dry Run
+
+- name: Cert.Standalone - List domains
+  when:
+    - certbot_dryrun | bool
+  ansible.builtin.debug:
+    var: item
+  loop: "{{ cert_item.domains }}"
+
+# ----- Asserts
+
+- name: Cert.Standalone - Set certificate name fact
+  ansible.builtin.set_fact:
+    _certbot_certname: "{{ cert_item.domains | first | replace('*.', '') }}"
+
+- name: Cert.Standalone - Check if certificate already exists.
+  become: true
+  ansible.builtin.stat:
+    path: "{{ certbot_path_live }}/{{ _certbot_certname }}/cert.pem"
+  register: letsencrypt_cert
+
+# ------- Hooks
+
+- name: Cert.Standalone - Handle Pre and Post Hooks
+  become: true
+  when:
+    - cert_item.services is defined
+    - cert_item.services
+  block:
+
+    - name: Cert.Standalone - Create pre hook to stop services.
+      ansible.builtin.template:
+        src: pre_hook.j2
+        dest: "{{ certbot_prehook }}"
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Cert.Standalone - Create post hook to start services.
+      ansible.builtin.template:
+        src: post_hook.j2
+        dest: "{{ certbot_posthook }}"
+        owner: root
+        group: root
+        mode: "0750"
+
+- name: Cert.Standalone - Handle Deploy Hook
+  become: true
+  when:
+    - cert_item.deploy is defined
+    - cert_item.deploy
+  block:
+
+    - name: Cert.Standalone - Create deploy hook to deploy certificates.
+      ansible.builtin.template:
+        src: deploy_certificates.j2
+        dest: "{{ certbot_deployhook }}"
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Cert.Standalone - Create deploy destination {{ cert_item.domains[0] }}
+      loop: "{{ cert_item.deploy }}"
+      when:
+        - item.destcreate is defined
+        - item.destcreate | bool
+      ansible.builtin.file:
+        path: "{{ item.dest }}"
+        owner: "{{ item.destowner }}"
+        group: "{{ item.destgroup }}"
+        mode: "{{ item.destmode }}"
+        state: directory
+
+# ------ Firewall
+
+- name: Cert.Standalone - Ensure HTTP port is open for webserver
+  become: true
+  register: certbot_http_open
+  notify: Close HTTP Port
+  when:
+    - certbot_create_method == "standalone"
+    - not letsencrypt_cert.stat.exists
+  ansible.posix.firewalld:
+    service: "http"
+    permanent: true
+    state: enabled
+    immediate: true
+
+# ------ Dry Run
+
+- name: Cert.Standalone - Print Certbot command
+  when:
+    - certbot_dryrun
+  ansible.builtin.debug:
+    msg:
+      - "Certbot Command:"
+      - "----------------"
+      - "{{ certbot_create_command }}"
+      - "----------------"
+
+# ------ Back to Jeff
+
+- name: Cert.Standalone - Generate new certificate if one doesn't exist.  # noqa: no-changed-when
+  become: true
+  register: certbot_create
+  when:
+    - not letsencrypt_cert.stat.exists
+  ansible.builtin.command:
+    cmd: "{{ certbot_create_command }}"
+
+- name: Cert.Standalone - Report on certificate creation
+  ansible.builtin.debug:
+    var: certbot_create

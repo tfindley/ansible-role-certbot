@@ -1,6 +1,16 @@
 ---
 # vars file for certbot
 
+_certbot_package:
+  default: "certbot"
+  RedHat:
+    8: "certbot"
+    9: "certbot"
+  Ubuntu:
+    16: "letsencrypt"
+certbot_package: "{{ _certbot_package[ansible_os_family][ansible_distribution_major_version | int] | default(_certbot_package['default']) }}"
+
+
 # CA Cert management
 _ca_path:
   RedHat:
@@ -16,13 +26,25 @@ _ca_path:
     11: /usr/local/share/ca-certificates
 ca_path: "{{ _ca_path[ansible_os_family][ansible_distribution_major_version | int] }}"
 
-_certbot_package:
-  default: "certbot"
-  RedHat:
-    8: "certbot"
-    9: "certbot"
-  Ubuntu:
-    16: "letsencrypt"
-certbot_package: "{{ _certbot_package[ansible_os_family][ansible_distribution_major_version | int] | default(_certbot_package['default']) }}"
+# Custom server string that we need for non-acme servers
+# certbot_custom_server_string: "--server {{ certbot_acme_server }} {{ certbot_acme_server_extra_args | default(null) }}"
+certbot_custom_server: "--server {{ cert_item.acme.server }} {{ cert_item.acme.options | default(null) }}"
 
-certbot_custom_server_string: "--server {{ certbot_acme_server }} {{ certbot_acme_server_extra_args | default(null) }}"
+# Paths for Certbot to reduce text in commands
+_certbot_path:
+  default: "/etc/letsencrypt"
+  package: "/etc/letsencrypt"
+  snap: "/etc/letsencrypt"
+  source: "{{ certbot_dir }}"
+certbot_path: "{{ _certbot_path[certbot_install_method] | default(_certbot_path['default']) }}"
+certbot_path_hooks: "{{ certbot_path }}/renewal-hooks"
+certbot_path_live: "{{ certbot_path }}/live"
+
+# Specific paths - requires {{ _certbot_certname }} to be set per cert request
+certbot_prehook: "{{ certbot_path_hooks }}/pre/{{ _certbot_certname }}_pre"
+certbot_posthook: "{{ certbot_path_hooks }}/post/{{ _certbot_certname }}_post"
+certbot_deployhook: "{{ certbot_path_hooks }}/deploy/{{ _certbot_certname }}_deploy"
+certbot_cert_pem: "{{ certbot_path_live }}/{{ _certbot_certname }}/cert.pem"
+certbot_chain_pem: "{{ certbot_path_live }}/{{ _certbot_certname }}/chain.pem"
+certbot_fullchain_pem: "{{ certbot_path_live }}/{{ _certbot_certname }}/fullchain.pem"
+certbot_privkey_pem: "{{ certbot_path_live }}/{{ _certbot_certname }}/privkey.pem"

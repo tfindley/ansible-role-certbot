@@ -1,0 +1,44 @@
+---
+
+- name: Cert.Webroot - Debug Var
+  when:
+    - certbot_dryrun | bool
+  ansible.builtin.debug:
+    var: item
+  loop: "{{ cert_item.domains }}"
+
+- name: Cert.Webroot - Set certificate name fact
+  ansible.builtin.set_fact:
+    _certbot_certname: "{{ cert_item.domains | first | replace('*.', '') }}"
+
+# -----
+
+- name: Cert.Webroot - Check if certificate already exists.
+  become: true
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/{{ cert_item.domains | first }}/cert.pem
+  register: letsencrypt_cert
+
+- name: Cert.Webroot - Create webroot directory if it doesn't exist yet
+  ansible.builtin.file:
+    path: "{{ cert_item.webroot | default(certbot_webroot) }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Cert.Webroot - Generate new certificate if one doesn't exist.  # noqa: no-changed-when
+  become: true
+  register: certbot_create
+  when:
+    - not letsencrypt_cert.stat.exists
+  ansible.builtin.command:
+    cmd: "{{ certbot_create_command }}"
+
+# ------
+
+- name: Cert.Webroot - Report on certificate creation
+  when:
+    - certbot_verbose | bool
+  ansible.builtin.debug:
+    var: certbot_create
