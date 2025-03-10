@@ -65,6 +65,6 @@
   loop_control:
     loop_var: cert_item
 
-# - name: Main - Handoff to AutoRenew (cron) task.
-#   ansible.builtin.import_tasks: renew_cron.yml
-#   when: certbot_auto_renew
+- name: Main - Handoff to AutoRenew (cron) task.
+  ansible.builtin.import_tasks: renew_cron.yml
+  when: certbot_auto_renew

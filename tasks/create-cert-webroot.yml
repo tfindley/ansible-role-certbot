@@ -13,6 +13,12 @@
 
 # -----
 
+# - name: Cert.Webroot - Check if certificate already exists.
+#   become: true
+#   ansible.builtin.stat:
+#     path: /etc/letsencrypt/live/{{ cert_item.domains | first }}/cert.pem
+#   register: letsencrypt_cert
+
 - name: Cert.Webroot - Create webroot directory if it doesn't exist yet
   ansible.builtin.file:
     path: "{{ cert_item.webroot | default(certbot_webroot) }}"
@@ -21,10 +27,15 @@
     group: root
     mode: "0755"
 
-- name: Generate new certificate if one doesn't exist.
-  command: "{{ certbot_create_command }}"
+- name: Cert.Webroot - Generate new certificate if one doesn't exist.  # noqa: no-changed-when
+  become: true
   register: certbot_create
+  when:
+    - not letsencrypt_cert.stat.exists
   changed_when: "'no action taken' not in certbot_create.stdout"
+  
+  ansible.builtin.command:
+    cmd: "{{ certbot_create_command }}"
 
 # -----
 

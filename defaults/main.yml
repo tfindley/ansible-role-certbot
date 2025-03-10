@@ -56,14 +56,14 @@ certbot_certs:
 certbot_create_extra_args: ""
 
 certbot_create_command: >-
-  {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun else '' }}
+  {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun | bool else '' }}
   {{ certbot_custom_server if cert_item.acme is defined and cert_item.acme.server != 'acme' else '' }}
   --{{ certbot_create_method }}
-  {{ '--hsts'if certbot_hsts else '' }}
-  {{ '--test-cert' if certbot_testmode else '' }}
+  {{ '--hsts'if certbot_hsts | bool else '' }}
+  {{ '--test-cert' if certbot_testmode | bool else '' }}
   --noninteractive --agree-tos
   --email {{ cert_item.email | default(certbot_admin_email) }}
-  {{ '--expand' if certbot_expand else '' }}
+  {{ '--expand' if certbot_expand | bool else '' }}
   {{ '--webroot-path ' if certbot_create_method == 'webroot'  else '' }}
   {{ cert_item.webroot | default(certbot_webroot) if certbot_create_method == 'webroot' else '' }}
   {{ certbot_create_extra_args }}
