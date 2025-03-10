@@ -1,53 +1,22 @@
 ---
+- name: Ensure pre and post hook folders exist.
+  file:
+    path: /etc/letsencrypt/renewal-hooks/{{ item }}
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  with_items:
+    - pre
+    - post
 
-# ----- Dry Run
-
-- name: Cert.Standalone - List domains
-  when:
-    - certbot_dryrun | bool
-  ansible.builtin.debug:
-    var: item
-  loop: "{{ cert_item.domains }}"
-
-# ----- Asserts
-
-- name: Cert.Standalone - Set certificate name fact
-  ansible.builtin.set_fact:
-    _certbot_certname: "{{ cert_item.domains | first | replace('*.', '') }}"
-
-- name: Cert.Standalone - Check if certificate already exists.
-  become: true
-  ansible.builtin.stat:
-    path: "{{ certbot_path_live }}/{{ _certbot_certname }}/cert.pem"
-  register: letsencrypt_cert
-
-# ------- Hooks
-
-- name: Cert.Standalone - Handle Pre and Post Hooks
-  become: true
-  when:
-    - cert_item.services is defined
-    - cert_item.services
-  block:
-
-    - name: Cert.Standalone - Create pre hook to stop services.
-      ansible.builtin.template:
-        src: pre_hook.j2
-        dest: "{{ certbot_prehook }}"
-        owner: root
-        group: root
-        mode: "0750"
-
-    - name: Cert.Standalone - Create post hook to start services.
-      ansible.builtin.template:
-        src: post_hook.j2
-        dest: "{{ certbot_posthook }}"
-        owner: root
-        group: root
-        mode: "0750"
-
-- name: Cert.Standalone - Handle Deploy Hook
-  become: true
+- name: Create pre hook to stop services.
+  template:
+    src: stop_services.j2
+    dest: /etc/letsencrypt/renewal-hooks/pre/stop_services
+    owner: root
+    group: root
+    mode: "0750"
   when:
     - cert_item.deploy is defined
     - cert_item.deploy
@@ -106,9 +75,16 @@
   become: true
   register: certbot_create
   when:
-    - not letsencrypt_cert.stat.exists
-  ansible.builtin.command:
-    cmd: "{{ certbot_create_command }}"
+    - certbot_create_standalone_stop_services is defined
+    - certbot_create_standalone_stop_services
+
+- name: Generate new certificate if one doesn't exist.
+  command: "{{ certbot_create_command }}"
+  register: certbot_create
+  changed_when: "'no action taken' not in certbot_create.stdout"
+
+# ------
+
 
 - name: Cert.Standalone - Report on certificate creation
   ansible.builtin.debug:

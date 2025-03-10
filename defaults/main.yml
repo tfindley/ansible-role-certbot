@@ -1,15 +1,10 @@
 ---
-# defaults file for certbot
-certbot_dryrun: false
+# Certbot auto-renew cron job configuration (for certificate renewals).
 certbot_auto_renew: true  # not yet implemented
 certbot_auto_renew_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
 certbot_auto_renew_hour: "3"
 certbot_auto_renew_minute: "30"
 certbot_auto_renew_options: "--quiet"
-
-certbot_create_extra_args:
-certbot_acme_server: acme
-certbot_acme_server_extra_args:
 
 certbot_testmode: false
 certbot_hsts: false
@@ -18,6 +13,7 @@ certbot_hsts: false
 certbot_create_if_missing: false
 certbot_create_method: standalone
 certbot_admin_email: email@example.com
+certbot_expand: false
 
 # Default webroot, overwritten by individual per-cert webroot directories
 certbot_webroot: /var/www/letsencrypt
@@ -57,9 +53,7 @@ certbot_certs:
 # - domains:
 #     - example3.com
 
-# Incorporate webroot and all options
-# Incorporate checks (inc.dns) and all options
-# Incorporate per-certificate server options so we can use acme for some and private for others
+certbot_create_extra_args: ""
 
 certbot_create_command: >-
   {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun else '' }}
@@ -69,9 +63,9 @@ certbot_create_command: >-
   {{ '--test-cert' if certbot_testmode else '' }}
   --noninteractive --agree-tos
   --email {{ cert_item.email | default(certbot_admin_email) }}
-  {{ '--webroot-path ' ~ cert_item.webroot | default(certbot_webroot)
-    if certbot_create_method == 'webroot'
-    else '' }}
+  {{ '--expand' if certbot_expand else '' }}
+  {{ '--webroot-path ' if certbot_create_method == 'webroot'  else '' }}
+  {{ cert_item.webroot | default(certbot_webroot) if certbot_create_method == 'webroot' else '' }}
   {{ certbot_create_extra_args }}
   -d {{ cert_item.domains | join(',') }}
   {{ '--pre-hook ' ~ certbot_prehook ~ ' --post-hook ' ~ certbot_posthook
@@ -92,6 +86,7 @@ certbot_keep_updated: true
 # Where to put Certbot when installing from source.
 certbot_dir: /opt/certbot
 
+certbot_dryrun: false
 certbot_verbose: false  # set to true to enable output from create commands
 certbot_firewall: false  # set to true to enable basic firewall management on port 80 for .wellknown endpoint
 certbot_test_dns: false
