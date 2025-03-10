@@ -32,7 +32,7 @@
 
     - name: Cert.Standalone - Create pre hook to stop services.
       ansible.builtin.template:
-        src: stop_services.j2
+        src: pre_hook.j2
         dest: "{{ certbot_prehook }}"
         owner: root
         group: root
@@ -40,7 +40,7 @@
 
     - name: Cert.Standalone - Create post hook to start services.
       ansible.builtin.template:
-        src: start_services.j2
+        src: post_hook.j2
         dest: "{{ certbot_posthook }}"
         owner: root
         group: root

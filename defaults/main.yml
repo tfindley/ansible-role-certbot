@@ -29,9 +29,15 @@ certbot_certs:
       - example1.com
       - example2.com
     services:  # Extra
-      - nginx
-      - apache
-      - varnish
+      - name: nginx.service
+        method: restart  # Service will be triggered with teh 'restart' service action in the post deployment
+      - name: apache.service
+        method: reload  # Service will be triggered with the 'reload' service action in the post deployment. Warning: service must support 'reload'
+      - name: varnish.service
+        method: stopstart # Service will be stopped in a pre-hook, then started in a post-hook. Warning: service will flap
+      - name: another.service  # With no 'method' the service will default to 'restart' - see above
+    service_new:
+
     deploy:  # Extra
       - dest: /opt/
         destowner: root
@@ -51,8 +57,9 @@ certbot_certs:
 # - domains:
 #     - example3.com
 
-# Support reload instead of restart for services
+# Incorporate webroot and all options
 # Incorporate checks (inc.dns) and all options
+# Incorporate per-certificate server options so we can use acme for some and private for others
 
 certbot_create_command: >-
   {{ certbot_script }} certonly {{ '--dry-run' if certbot_dryrun else '' }}

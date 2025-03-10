@@ -16,12 +16,23 @@
 - name: Validate services exist
   ansible.builtin.assert:
     that:
-      - item in services
-    fail_msg: "Service {{ item }} does not exist on this system"
+      - item.name in services
+    fail_msg: "Service {{ item.name }} does not exist on this system"
     quiet: true
   loop: "{{ cert_item.services }}"
   loop_control:
-    label: "{{ item }}"
+    label: "{{ item.name }}"
+  when: cert_item.services is defined
+
+- name: Validate services method
+  ansible.builtin.assert:
+    that:
+      - item.method in [ "stopstart", "restart", "reload" ]
+    fail_msg: "Service {{ item.name }} method must be set to stopstart, restart, or reload"
+    quiet: true
+  loop: "{{ cert_item.services }}"
+  loop_control:
+    label: "{{ item.name }}"
   when: cert_item.services is defined
 
 # -------
