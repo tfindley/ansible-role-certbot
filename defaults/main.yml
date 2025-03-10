@@ -20,8 +20,8 @@ certbot_webroot: /var/www/letsencrypt
 
 certbot_certs:
   - email: janedoe@example.com
-    webroot: "/var/www/html/"
-    domains:
+    webroot: "/var/www/html/"  # Specify your webroot if you're running in certbot_create_method=webroot
+    domains:  # Add multiple domains as needed
       - example1.com
       - example2.com
     services:  # Extra
@@ -32,9 +32,7 @@ certbot_certs:
       - name: varnish.service
         method: stopstart # Service will be stopped in a pre-hook, then started in a post-hook. Warning: service will flap
       - name: another.service  # With no 'method' the service will default to 'restart' - see above
-    service_new:
-
-    deploy:  # Extra
+    deploy:  # Optional - If you do not include this certificates will not be copied to destinations. 
       - dest: /opt/
         destowner: root
         destgroup: root
@@ -48,8 +46,8 @@ certbot_certs:
         fullchain: true
         privkey: true
     acme:
-      server: acme
-      options:
+      server: acme  # Change this for a local ACME server if you are running one
+      options:  # Add any options in here
 # - domains:
 #     - example3.com
 
